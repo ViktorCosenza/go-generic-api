@@ -61,7 +61,7 @@ func getMigrations(db *gorm.DB) *gormigrate.Gormigrate{
 				if err != nil {
 					return err
 				}
-				return tx.Model(models.Admin{}).AddForeignKey("user_id", "users(id)", "RESTRICT", "RESTRICT").Error
+				return tx.Model(models.Admin{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").Error
 			},
 			Rollback: func(tx *gorm.DB) error {
 				return tx.DropTableIfExists("admins").Error
@@ -75,7 +75,7 @@ func getMigrations(db *gorm.DB) *gormigrate.Gormigrate{
 					return err
 				}
 
-				return tx.Model(models.Text{}).AddForeignKey("admin_id", "admins(id)", "RESTRICT", "RESTRICT").Error
+				return tx.Model(models.Text{}).AddForeignKey("admin_id", "admins(id)", "CASCADE", "CASCADE").Error
 			},
 			Rollback: func(tx *gorm.DB) error {
 				return tx.DropTableIfExists("texts").Error

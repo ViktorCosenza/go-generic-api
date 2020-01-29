@@ -5,6 +5,7 @@ import(
 	"github.com/jinzhu/gorm"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-contrib/cors"
+	"github.com/t-tiger/gorm-bulk-insert"
 	"net/http"
 	"golang.org/x/crypto/bcrypt"
 	"io/ioutil"
@@ -64,9 +65,17 @@ func Start(db *gorm.DB) *gin.Engine {
 	})
 
 	r.POST("/text", func(c *gin.Context) {
-		var response []string
-		zipFile, header, _ := c.Request.FormFile("file")
-		read, _ := zip.NewReader(zipFile, header.Size)
+		var texts []interface{}
+		zipFile, header, err := c.Request.FormFile("file")
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Bad Request"})
+			return
+		}
+		read, err := zip.NewReader(zipFile, header.Size)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+			return
+		}
 		for _, file := range read.File {
 			fileread, err := file.Open()
 			if err != nil {
@@ -76,9 +85,10 @@ func Start(db *gorm.DB) *gin.Engine {
 			defer fileread.Close()
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(fileread)
-			response = append(response, buf.String())
+			texts = append(texts, &models.Text{Body: buf.String(), AdminID: 1})
 		}
-		c.JSON(http.StatusOK, gin.H{"message": response})
+		gormbulk.BulkInsert(db, texts, 10000)
+		c.JSON(http.StatusOK, gin.H{"message": "All files saved."})
 	})
 
 	r.POST("/ontology", func(c *gin.Context) {

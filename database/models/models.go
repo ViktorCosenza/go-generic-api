@@ -21,6 +21,7 @@ type Admin struct {
 // Text model
 type Text struct {
 	gorm.Model
+	Name        string `gorm:"unique, not null"`
 	Body        string `gorm:"not null"`
 	AdminID     uint `gorm:"not null"`
 	Admin       Admin
