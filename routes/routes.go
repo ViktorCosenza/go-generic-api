@@ -1,17 +1,18 @@
 package routes
 
-import(
-	"fama-api/database/models"
-	"github.com/jinzhu/gorm"
-	"github.com/gin-gonic/gin"
-	"github.com/gin-contrib/cors"
-	"github.com/t-tiger/gorm-bulk-insert"
-	"net/http"
-	"golang.org/x/crypto/bcrypt"
-	"io/ioutil"
-	"fmt"
+import (
 	"archive/zip"
 	"bytes"
+	"fama-api/database/models"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
+	gormbulk "github.com/t-tiger/gorm-bulk-insert"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Start returns a router with the routes
@@ -32,15 +33,20 @@ func Start(db *gorm.DB) *gin.Engine {
 		if err := c.Bind(&SignupPayload{}); err != nil {
 			return
 		}
+
 		hash, err := bcrypt.GenerateFromPassword([]byte(c.PostForm("password")), bcrypt.DefaultCost)
 		if err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
+			return
 		}
 		user := models.User{
 			Username: c.PostForm("username"),
 			Password: string(hash),
 		}
-		db.Create(&user)
+		if err := db.Create(&user).Error; err != nil {
+			c.AbortWithStatusJSON(http.StatusConflict, gin.H{"message": "Username is taken"})
+			return
+		}
 		db.Create(&models.Admin{UserID: user.ID}) // All users are admins for now TODO: REMOVE THIS
 		c.JSON(http.StatusOK, gin.H{"user": user})
 	})
@@ -64,7 +70,7 @@ func Start(db *gorm.DB) *gin.Engine {
 		db.Find(&users)
 		c.JSON(http.StatusOK, gin.H{"users": users})
 	}) // Get all users, just for dev purpose TODO: DELETE THIS WHEN DONE//
-	
+
 	// Add Texts via Zip file upload
 	r.POST("/text", func(c *gin.Context) {
 		var texts []interface{}
@@ -87,7 +93,7 @@ func Start(db *gorm.DB) *gin.Engine {
 			defer fileread.Close()
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(fileread)
-			texts = append(texts, &models.Text{Body: buf.String(), Name:file.Name, AdminID: 1})
+			texts = append(texts, &models.Text{Body: buf.String(), Name: file.Name, AdminID: 1})
 		}
 		err = gormbulk.BulkInsert(db, texts, 1000)
 		if err != nil {
@@ -137,7 +143,7 @@ func Start(db *gorm.DB) *gin.Engine {
 			c.JSON(http.StatusOK, gin.H{"err": err.Error()})
 			return
 		}
-		
+
 		var users []models.User
 		var unassignedTexts []models.Text
 		db.Where(payload.UserIDs).
@@ -163,9 +169,47 @@ func Start(db *gorm.DB) *gin.Engine {
 		c.JSON(http.StatusOK, gin.H{"assigments": assigments})
 	})
 
+	// Submit annotation for a given text
 	r.POST("/annotation", func(c *gin.Context) {
+		type AnnotationPayload struct {
+			Annotation struct {
+				Labels      []models.Label `json:"labels" binding:"required"`
+				AssigmentID uint           `json:"assigment" binding:"required"`
+			} `json:"annotation" binding:"required"`
+		}
 
-		c.JSON(http.StatusOK, gin.H{"message": "NOT IMPLEMENTED"})
+		var payload AnnotationPayload
+		if err := c.ShouldBindJSON(&payload); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			return
+		}
+
+		var annotation models.Annotation
+		db.
+			Model(&models.Annotation{}).
+			Create(&models.Annotation{AssigmentID: payload.Annotation.AssigmentID}).
+			Find(&annotation)
+
+		var labels []interface{}
+		for _, label := range payload.Annotation.Labels {
+			labels = append(labels, models.Label{
+				First:        label.First,
+				Second:       label.Second,
+				Third:        label.Third,
+				Fourth:       label.Fourth,
+				Explicit:     label.Explicit,
+				Start:        label.Start,
+				End:          label.End,
+				AnnotationID: annotation.ID,
+			})
+		}
+
+		if err := gormbulk.BulkInsert(db, labels, 3000); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": labels})
 	})
 
 	return r

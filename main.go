@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
-	"github.com/joho/godotenv"
 	"fama-api/server"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"fmt"
 
+	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/joho/godotenv"
 )
 
 func main() {

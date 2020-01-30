@@ -1,8 +1,9 @@
 package database
 
 import (
-	"github.com/jinzhu/gorm"
 	"os"
+
+	"github.com/jinzhu/gorm"
 )
 
 // Connect to a database

@@ -1,15 +1,16 @@
 package server
 
-import(
-	"github.com/jinzhu/gorm"
-	"github.com/gin-gonic/gin"
-	"fama-api/routes"
+import (
 	"fama-api/database"
+	"fama-api/routes"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
 )
 
 //Server struct
 type Server struct {
-	db *gorm.DB
+	db     *gorm.DB
 	router *gin.Engine
 }
 
@@ -26,8 +27,7 @@ func Start() (*Server, error) {
 	}
 	r := routes.Start(db)
 	return &Server{
-		db: db,
+		db:     db,
 		router: r,
 	}, nil
 }
-

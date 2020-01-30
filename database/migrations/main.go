@@ -3,13 +3,14 @@ package main
 import (
 	"fama-api/database"
 	"fama-api/database/models"
+	"flag"
 	"fmt"
+	"log"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/joho/godotenv"
 	"gopkg.in/gormigrate.v1"
-	"log"
-	"flag"
 )
 
 func main() {
@@ -42,23 +43,29 @@ func main() {
 	log.Println("Migration OK")
 }
 
-func getMigrations(db *gorm.DB) *gormigrate.Gormigrate{
+func getMigrations(db *gorm.DB) *gormigrate.Gormigrate {
 	return gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration{
 		{
 			ID: "0001",
-			Migrate: func(tx *gorm.DB) error {				
-				err := tx.AutoMigrate(&models.User{}).Error
-				return err
+			Migrate: func(tx *gorm.DB) error {
+				if err := tx.AutoMigrate(&models.User{}).Error; err != nil {
+					return err
+				}
+				return tx.Model(&models.User{}).AddUniqueIndex("idx_username", "username").Error
 			},
 			Rollback: func(tx *gorm.DB) error {
 				return tx.DropTableIfExists("users").Error
 			},
 		},
 		{
-			ID:"0002",
+			ID: "0002",
 			Migrate: func(tx *gorm.DB) error {
-				err := tx.AutoMigrate(&models.Admin{}).Error
-				if err != nil {
+				if err := tx.AutoMigrate(&models.Admin{}).Error; err != nil {
+					return err
+				}
+
+				if err := tx.Model(&models.Admin{}).
+					AddUniqueIndex("idx_user_id", "admin_id").Error; err != nil {
 					return err
 				}
 				return tx.Model(models.Admin{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").Error
@@ -70,11 +77,15 @@ func getMigrations(db *gorm.DB) *gormigrate.Gormigrate{
 		{
 			ID: "0003",
 			Migrate: func(tx *gorm.DB) error {
-				err := tx.AutoMigrate(&models.Text{}).Error
-				if err != nil {
+				if err := tx.AutoMigrate(&models.Text{}).Error; err != nil {
 					return err
 				}
-				
+
+				if err := tx.Model(models.Text{}).
+					AddUniqueIndex("idx_name", "name").Error; err != nil {
+					return err
+				}
+
 				return tx.Model(models.Text{}).AddForeignKey("admin_id", "admins(id)", "CASCADE", "CASCADE").Error
 			},
 			Rollback: func(tx *gorm.DB) error {
@@ -86,20 +97,24 @@ func getMigrations(db *gorm.DB) *gormigrate.Gormigrate{
 			Migrate: func(tx *gorm.DB) error {
 				return tx.AutoMigrate(&models.JSONOntology{}).Error
 			},
-			Rollback: func(tx *gorm.DB) error { 
+			Rollback: func(tx *gorm.DB) error {
 				return tx.DropTableIfExists("json_ontologies").Error
 			},
 		},
 		{
 			ID: "0005",
 			Migrate: func(tx *gorm.DB) error {
-				err := tx.AutoMigrate(&models.Assigment{}).Error
-				if err != nil {
+				if err := tx.AutoMigrate(&models.Assigment{}).Error; err != nil {
 					return err
 				}
-				
-				err = tx.Model(&models.Assigment{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").Error
-				if err != nil {
+
+				if err := tx.Model(&models.Assigment{}).
+					AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").Error; err != nil {
+					return err
+				}
+
+				if err := tx.Model(&models.Assigment{}).
+					AddUniqueIndex("idx_user_id_text_id", "user_id", "text_id").Error; err != nil {
 					return err
 				}
 
@@ -113,6 +128,11 @@ func getMigrations(db *gorm.DB) *gormigrate.Gormigrate{
 			ID: "0006",
 			Migrate: func(tx *gorm.DB) error {
 				if err := tx.AutoMigrate(&models.Annotation{}).Error; err != nil {
+					return err
+				}
+
+				if err := tx.Model(&models.Annotation{}).
+					AddUniqueIndex("idx_assigment_id", "assigment_id").Error; err != nil {
 					return err
 				}
 
