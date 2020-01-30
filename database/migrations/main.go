@@ -74,7 +74,7 @@ func getMigrations(db *gorm.DB) *gormigrate.Gormigrate{
 				if err != nil {
 					return err
 				}
-
+				
 				return tx.Model(models.Text{}).AddForeignKey("admin_id", "admins(id)", "CASCADE", "CASCADE").Error
 			},
 			Rollback: func(tx *gorm.DB) error {
@@ -88,6 +88,51 @@ func getMigrations(db *gorm.DB) *gormigrate.Gormigrate{
 			},
 			Rollback: func(tx *gorm.DB) error { 
 				return tx.DropTableIfExists("json_ontologies").Error
+			},
+		},
+		{
+			ID: "0005",
+			Migrate: func(tx *gorm.DB) error {
+				err := tx.AutoMigrate(&models.Assigment{}).Error
+				if err != nil {
+					return err
+				}
+				
+				err = tx.Model(&models.Assigment{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").Error
+				if err != nil {
+					return err
+				}
+
+				return tx.Model(&models.Assigment{}).AddForeignKey("text_id", "texts(id)", "CASCADE", "CASCADE").Error
+			},
+			Rollback: func(tx *gorm.DB) error {
+				return tx.DropTableIfExists("assigments").Error
+			},
+		},
+		{
+			ID: "0006",
+			Migrate: func(tx *gorm.DB) error {
+				if err := tx.AutoMigrate(&models.Annotation{}).Error; err != nil {
+					return err
+				}
+
+				return tx.Model(&models.Annotation{}).
+					AddForeignKey("assigment_id", "assigments(id)", "CASCADE", "CASCADE").Error
+			},
+			Rollback: func(tx *gorm.DB) error {
+				return tx.DropTableIfExists("annotation").Error
+			},
+		},
+		{
+			ID: "0007",
+			Migrate: func(tx *gorm.DB) error {
+				if err := tx.AutoMigrate(&models.Label{}).Error; err != nil {
+					return err
+				}
+				return tx.Model(&models.Label{}).AddForeignKey("annotation_id", "annotations(id)", "CASCADE", "CASCADE").Error
+			},
+			Rollback: func(tx *gorm.DB) error {
+				return tx.DropTableIfExists("labels").Error
 			},
 		},
 	})
