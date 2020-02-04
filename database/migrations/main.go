@@ -65,10 +65,19 @@ func getMigrations(db *gorm.DB) *gormigrate.Gormigrate {
 				}
 
 				if err := tx.Model(&models.Admin{}).
-					AddUniqueIndex("idx_user_id", "admin_id").Error; err != nil {
+					AddUniqueIndex("idx_user_id", "user_id").Error; err != nil {
 					return err
 				}
-				return tx.Model(models.Admin{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").Error
+				if err := tx.Model(models.Admin{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").Error; err != nil {
+					return err
+				}
+
+				var user models.User
+				if err := tx.Table("users").Create(&models.User{Username: "Admin", Password: "123456"}).Scan(&user).Error; err != nil {
+					return err
+				}
+
+				return tx.Table("admins").Create(&models.Admin{UserID: user.ID}).Error
 			},
 			Rollback: func(tx *gorm.DB) error {
 				return tx.DropTableIfExists("admins").Error
@@ -125,31 +134,12 @@ func getMigrations(db *gorm.DB) *gormigrate.Gormigrate {
 			},
 		},
 		{
-			ID: "0006",
-			Migrate: func(tx *gorm.DB) error {
-				if err := tx.AutoMigrate(&models.Annotation{}).Error; err != nil {
-					return err
-				}
-
-				if err := tx.Model(&models.Annotation{}).
-					AddUniqueIndex("idx_assigment_id", "assigment_id").Error; err != nil {
-					return err
-				}
-
-				return tx.Model(&models.Annotation{}).
-					AddForeignKey("assigment_id", "assigments(id)", "CASCADE", "CASCADE").Error
-			},
-			Rollback: func(tx *gorm.DB) error {
-				return tx.DropTableIfExists("annotation").Error
-			},
-		},
-		{
 			ID: "0007",
 			Migrate: func(tx *gorm.DB) error {
 				if err := tx.AutoMigrate(&models.Label{}).Error; err != nil {
 					return err
 				}
-				return tx.Model(&models.Label{}).AddForeignKey("annotation_id", "annotations(id)", "CASCADE", "CASCADE").Error
+				return tx.Model(&models.Label{}).AddForeignKey("assigment_id", "assigments(id)", "CASCADE", "CASCADE").Error
 			},
 			Rollback: func(tx *gorm.DB) error {
 				return tx.DropTableIfExists("labels").Error
