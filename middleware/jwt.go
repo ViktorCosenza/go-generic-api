@@ -18,6 +18,7 @@ import (
 
 // JwtPayload contains the values stored in the jwt Token used by the app
 type JwtPayload struct {
+	UserID   uint
 	Username string
 	IsAdmin  bool
 }
@@ -43,12 +44,13 @@ func GetJwtMiddleware(db *gorm.DB) (*jwt.GinJWTMiddleware, error) {
 			}
 
 			var user struct {
+				ID       uint
 				Username string
 				Password string
 				IsAdmin  bool
 			}
 			if err := db.Table("users").
-				Select("users.username, users.password, CASE WHEN admins.user_id IS NULL THEN 'false' ELSE 'true' END as is_admin").
+				Select("users.id, users.username, users.password, CASE WHEN admins.user_id IS NULL THEN 'false' ELSE 'true' END as is_admin").
 				Where(&models.User{Username: payload.Username}).
 				Joins("LEFT JOIN admins ON admins.user_id = users.id").
 				First(&user).Error; err != nil {
@@ -59,14 +61,10 @@ func GetJwtMiddleware(db *gorm.DB) (*jwt.GinJWTMiddleware, error) {
 				[]byte(user.Password),
 				[]byte(payload.Password),
 			); err != nil {
-				hash, _ := bcrypt.GenerateFromPassword([]byte(payload.Password), bcrypt.DefaultCost)
-				fmt.Println(user.Password)
-				fmt.Println(string(hash))
-				fmt.Println(payload.Password)
-				fmt.Println(err)
 				return nil, jwt.ErrFailedAuthentication
 			}
 			return &JwtPayload{
+				UserID:   user.ID,
 				Username: user.Username,
 				IsAdmin:  user.IsAdmin,
 			}, nil
@@ -74,17 +72,23 @@ func GetJwtMiddleware(db *gorm.DB) (*jwt.GinJWTMiddleware, error) {
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
 			if payload, ok := data.(*JwtPayload); ok {
 				return jwt.MapClaims{
+					"UserID":   payload.UserID,
 					"Username": payload.Username,
 					"IsAdmin":  payload.IsAdmin,
 				}
 			}
+			fmt.Println("Empty Claim")
 			return jwt.MapClaims{}
 		},
 		IdentityHandler: func(c *gin.Context) interface{} {
 			claims := jwt.ExtractClaims(c)
+			id, _ := claims["UserID"].(float64)
+			username, _ := claims["Username"].(string)
+			isAdmin, _ := claims["IsAdmin"].(bool)
 			return &JwtPayload{
-				Username: claims["Username"].(string),
-				IsAdmin:  claims["IsAdmin"].(bool),
+				UserID:   uint(id),
+				Username: username,
+				IsAdmin:  isAdmin,
 			}
 		},
 		Authorizator: func(data interface{}, c *gin.Context) bool {

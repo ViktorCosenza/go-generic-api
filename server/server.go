@@ -25,7 +25,12 @@ func Start() (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := routes.Start(db)
+
+	r, err := routes.Start(db)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Server{
 		db:     db,
 		router: r,
