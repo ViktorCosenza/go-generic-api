@@ -63,6 +63,7 @@ func GetJwtMiddleware(db *gorm.DB) (*jwt.GinJWTMiddleware, error) {
 			); err != nil {
 				return nil, jwt.ErrFailedAuthentication
 			}
+
 			return &JwtPayload{
 				UserID:   user.ID,
 				Username: user.Username,
@@ -112,5 +113,11 @@ func GetJwtMiddleware(db *gorm.DB) (*jwt.GinJWTMiddleware, error) {
 				"message": message,
 			})
 		},
+		SendCookie:     true,
+		SecureCookie:   false,
+		CookieHTTPOnly: true,
+		CookieDomain:   "localhost:8080",
+		CookieName:     "token",
+		TokenLookup:    "cookie:token",
 	})
 }

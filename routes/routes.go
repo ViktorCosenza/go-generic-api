@@ -2,6 +2,7 @@ package routes
 
 import (
 	"fama-api/middleware"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -19,7 +20,12 @@ func Start(db *gorm.DB) (*gin.Engine, error) {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
-		AllowAllOrigins: true,
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
 	}))
 
 	auth := r.Group("/auth")
@@ -42,7 +48,7 @@ func Start(db *gorm.DB) (*gin.Engine, error) {
 	{
 		annotation.Use(authMiddleware.MiddlewareFunc())
 		annotation.GET("/ontology", getOntology(db)) // Get Json ontology
-		annotation.POST("/", createAnnotation(db))   // Submit annotaiton for a given text
+		annotation.POST("", createAnnotation(db))    // Submit annotaiton for a given text
 		annotation.GET("/assigment", getAssigment(db))
 	}
 

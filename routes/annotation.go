@@ -16,7 +16,7 @@ func getAssigment(db *gorm.DB) func(*gin.Context) {
 		claims := jwt.ExtractClaims(c)
 		var assigment struct {
 			ID   uint   `json:"assigment_id"`
-			Body string `json:"body"`
+			Body string `json:"text"`
 			Name string `json:"title"`
 		}
 		if err := db.Table("assigments").
@@ -53,26 +53,27 @@ func createAnnotation(db *gorm.DB) func(*gin.Context) {
 			return
 		}
 
-		var annotation models.Annotation
-		if err := db.
-			Model(&models.Annotation{}).
-			Create(&models.Annotation{AssigmentID: payload.AssigmentID}).
-			Find(&annotation).Error; err != nil {
+		var hasAnnotation uint
+		if err := db.Table("labels").
+			Where("labels.id = ?", payload.AssigmentID).
+			Count(&hasAnnotation).Error; err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 			return
 		}
-
+		if hasAnnotation > 0 {
+			c.JSON(http.StatusConflict, gin.H{"err": "Assigment already fulfilled"})
+		}
 		var labels []interface{}
 		for _, label := range payload.Labels {
 			labels = append(labels, models.Label{
-				First:        label.First,
-				Second:       label.Second,
-				Third:        label.Third,
-				Fourth:       label.Fourth,
-				Explicit:     label.Explicit,
-				Start:        label.Start,
-				End:          label.End,
-				AnnotationID: annotation.ID,
+				First:       label.First,
+				Second:      label.Second,
+				Third:       label.Third,
+				Fourth:      label.Fourth,
+				Explicit:    label.Explicit,
+				Start:       label.Start,
+				End:         label.End,
+				AssigmentID: payload.AssigmentID,
 			})
 		}
 
