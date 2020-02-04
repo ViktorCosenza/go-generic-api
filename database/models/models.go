@@ -50,8 +50,8 @@ type Label struct {
 	Third        string `json:"third" binding:"required"`
 	Fourth       string `json:"fourth" binding:"required"`
 	Explicit     bool   `json:"explicit" binding:"required"`
-	Start        uint   `gorm:"not null"`
-	End          uint   `gorm:"not null"`
+	Start        uint   `gorm:"not null" json:"start" binding:"required"`
+	End          uint   `gorm:"not null" json:"end" binding:"required"`
 	AnnotationID uint   `gorm:"not null"`
 }
 
