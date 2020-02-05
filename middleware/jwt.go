@@ -113,11 +113,5 @@ func GetJwtMiddleware(db *gorm.DB) (*jwt.GinJWTMiddleware, error) {
 				"message": message,
 			})
 		},
-		SendCookie:     true,
-		SecureCookie:   false,
-		CookieHTTPOnly: true,
-		CookieDomain:   "localhost:8080",
-		CookieName:     "token",
-		TokenLookup:    "cookie:token",
 	})
 }

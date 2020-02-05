@@ -20,9 +20,9 @@ func Start(db *gorm.DB) (*gin.Engine, error) {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowAllOrigins:  true,
 		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
@@ -36,12 +36,12 @@ func Start(db *gorm.DB) (*gin.Engine, error) {
 	admin := r.Group("/admin")
 	admin.Use(authMiddleware.MiddlewareFunc())
 	{
-		auth.POST("/signup", createUser(db))           // Create new User
-		admin.GET("/users", getUsers(db))              // Get all users, just for dev purpose TODO: DELETE THIS WHEN DONE//
-		admin.POST("/text", createTexts(db))           // Add Texts via Zip file upload
-		admin.POST("/ontology", createOntology(db))    // Insert json ontology
-		admin.GET("/assigment", getAssigments(db))     // Get assigments count for each user
-		admin.POST("/assigment", createAssigments(db)) // Assign texts to given users
+		admin.POST("/users", createUser(db))            // Create new User
+		admin.GET("/users", getUsers(db))               // Get all users, just for dev purpose TODO: DELETE THIS WHEN DONE//
+		admin.POST("/text", createTexts(db))            // Add Texts via Zip file upload
+		admin.POST("/ontology", createOntology(db))     // Insert json ontology
+		admin.GET("/assigments", getAssigments(db))     // Get assigments count for each user
+		admin.POST("/assigments", createAssigments(db)) // Assign texts to given users
 	}
 
 	annotation := r.Group("/annotation")

@@ -23,8 +23,9 @@ func getAssigment(db *gorm.DB) func(*gin.Context) {
 			Select("assigments.id, texts.body, texts.name").
 			Joins("JOIN texts ON texts.id = assigments.text_id").
 			Where(&models.Assigment{UserID: uint(claims["UserID"].(float64))}).
+			Where("assigments.id NOT IN ?", db.Table("labels").Select("labels.assigment_id").Group("labels.assigment_id").SubQuery()).
 			Take(&assigment).Error; err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
+			c.JSON(http.StatusOK, gin.H{"message": "No assigments available for user", "assigment": nil})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"assigment": assigment})

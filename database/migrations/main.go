@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/joho/godotenv"
@@ -72,8 +74,17 @@ func getMigrations(db *gorm.DB) *gormigrate.Gormigrate {
 					return err
 				}
 
+				password, err := bcrypt.GenerateFromPassword([]byte("12345"), bcrypt.DefaultCost)
+				if err != nil {
+					return err
+				}
+
 				var user models.User
-				if err := tx.Table("users").Create(&models.User{Username: "Admin", Password: "123456"}).Scan(&user).Error; err != nil {
+				if err = tx.Table("users").
+					Create(&models.User{
+						Username: "Admin",
+						Password: string(password)}).
+					Scan(&user).Error; err != nil {
 					return err
 				}
 
